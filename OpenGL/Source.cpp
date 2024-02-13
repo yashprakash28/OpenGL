@@ -18,6 +18,7 @@ const unsigned int SCR_HEIGHT = 600;
 
 unsigned int VBO, VAO, EBO;
 unsigned int textureOneID;
+unsigned int textureAID, textureBID;
 
 #pragma endregion
 
@@ -25,10 +26,10 @@ unsigned int textureOneID;
 
 float vertices[] = {
     // positions          // colors           // texture coords
-     0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f, // top right
-     0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f, // bottom right
-    -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f, // bottom left
-    -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f  // top left 
+     0.9f,  0.9f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f, // top right
+     0.9f, -0.9f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f, // bottom right
+    -0.9f, -0.9f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f, // bottom left
+    -0.9f,  0.9f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f  // top left 
 };
 unsigned int indices[] = {
     0, 1, 3, // first triangle
@@ -151,6 +152,38 @@ void LoadTextureData(int imageIndex)
     stbi_image_free(data);
 }
 
+void LoadTextureData_Simultaneous(int texID, int texUnit, int imageIndex)
+{
+    glActiveTexture(texUnit);
+    glBindTexture(GL_TEXTURE_2D, texID);
+
+    // set the texture wrapping parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    // set texture filtering parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    int width, height, nrChannels;
+    stbi_set_flip_vertically_on_load(true);
+
+    unsigned char* data = stbi_load(imagePaths[imageIndex - 1], &width, &height, &nrChannels, 0);
+
+    if (data)
+    {
+        cout << "Loaded texture: " << imagePaths[imageIndex - 1] << "(" << width << "x" << height << ")" << endl;
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    else
+    {
+        cout << "Failed to load texture" << endl;
+    }
+
+    stbi_image_free(data);
+}
+
 void processInput(GLFWwindow* window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -182,12 +215,20 @@ int main()
     if (GLLibInit() == -1)  return -1;
 
     Shader ourShader("vshader.vs", "fshader.fs");
+    ourShader.use();
 
     CreateGeometry();
-    InitTexture();
-    LoadTextureData(currIndex);
+    //InitTexture();
+    //LoadTextureData(currIndex);
 
-    ourShader.use();
+    glGenTextures(1, &textureAID);
+    LoadTextureData_Simultaneous(textureAID, GL_TEXTURE0, 1);
+
+    glGenTextures(1, &textureBID);
+    LoadTextureData_Simultaneous(textureBID, GL_TEXTURE1, 3);
+
+    glUniform1i(glGetUniformLocation(ourShader.ID, "textureA"), 0);
+    glUniform1i(glGetUniformLocation(ourShader.ID, "textureB"), 1);
 
     while (!glfwWindowShouldClose(window))
     {
@@ -196,31 +237,17 @@ int main()
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        //// bind textures on corresponding texture units
-        //glActiveTexture(GL_TEXTURE0);
-        //glBindTexture(GL_TEXTURE_2D, texture1);
-        //glActiveTexture(GL_TEXTURE1);
-        //glBindTexture(GL_TEXTURE_2D, texture2);
-
-        // render container
-        //ourShader.use();
         glBindVertexArray(VAO);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
-        // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
-        // -------------------------------------------------------------------------------
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
-    // optional: de-allocate all resources once they've outlived their purpose:
-    // ------------------------------------------------------------------------
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
     glDeleteBuffers(1, &EBO);
 
-    // glfw: terminate, clearing all previously allocated GLFW resources.
-    // ------------------------------------------------------------------
     glfwTerminate();
     return 0;
 }
