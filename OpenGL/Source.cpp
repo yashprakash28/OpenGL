@@ -7,6 +7,8 @@
 
 using namespace std;
 
+#define MAX_IMAGE_COUNT 5
+
 #pragma region Init_Variables
 
 GLFWwindow* window;
@@ -16,24 +18,6 @@ const unsigned int SCR_HEIGHT = 600;
 
 unsigned int VBO, VAO, EBO;
 unsigned int textureOneID;
-
-#pragma endregion
-
-
-#pragma region Utility_functions
-
-void processInput(GLFWwindow* window)
-{
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, true);
-}
-
-void framebuffer_size_callback(GLFWwindow* window, int width, int height)
-{
-    // make sure the viewport matches the new window dimensions; note that width and 
-    // height will be significantly larger than specified on retina displays.
-    glViewport(0, 0, width, height);
-}
 
 #pragma endregion
 
@@ -52,6 +36,15 @@ unsigned int indices[] = {
 };
 
 #pragma endregion
+
+unsigned int currIndex = 1;
+
+void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+{
+    // make sure the viewport matches the new window dimensions; note that width and 
+    // height will be significantly larger than specified on retina displays.
+    glViewport(0, 0, width, height);
+}
 
 int WindowInit()
 {
@@ -118,7 +111,15 @@ void InitTexture()
     glGenTextures(1, &textureOneID);
 }
 
-void LoadTextureData()
+const char* imagePaths[MAX_IMAGE_COUNT] = {
+	"Images/image1.jpg",
+	"Images/image2.jpg",
+	"Images/image3.jpg",
+	"Images/image4.jpg",
+	"Images/image5.jpg"
+};
+
+void LoadTextureData(int imageIndex)
 {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, textureOneID);
@@ -134,11 +135,11 @@ void LoadTextureData()
     int width, height, nrChannels;
     stbi_set_flip_vertically_on_load(true);
 
-    unsigned char* data = stbi_load("image.jpg", &width, &height, &nrChannels, 0);
+    unsigned char* data = stbi_load(imagePaths[imageIndex - 1], &width, &height, &nrChannels, 0);
 
     if (data)
     {
-        cout << "Loaded texture: " << width << ", " << height << endl;
+        cout << "Loaded texture: " << imagePaths[imageIndex - 1] << "(" << width << "x" << height << ")" << endl;
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
     }
@@ -148,6 +149,30 @@ void LoadTextureData()
     }
 
     stbi_image_free(data);
+}
+
+void processInput(GLFWwindow* window)
+{
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, true);
+
+    if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+    {
+        currIndex--;
+        if (currIndex < 1)
+            currIndex = MAX_IMAGE_COUNT;
+
+        LoadTextureData(currIndex);
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+    {
+        currIndex++;
+        if (currIndex > MAX_IMAGE_COUNT)
+            currIndex = 1;
+
+        LoadTextureData(currIndex);
+    }
 }
 
 int main()
@@ -160,7 +185,7 @@ int main()
 
     CreateGeometry();
     InitTexture();
-    LoadTextureData();
+    LoadTextureData(currIndex);
 
     ourShader.use();
 
