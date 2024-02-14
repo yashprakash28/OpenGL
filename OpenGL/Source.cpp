@@ -20,6 +20,11 @@ unsigned int VBO, VAO, EBO;
 unsigned int textureOneID;
 unsigned int textureAID, textureBID;
 
+Shader ourShader;
+
+unsigned int currIndex = 1;
+unsigned int orientation = 1;
+
 #pragma endregion
 
 #pragma region Geometry_Data
@@ -38,7 +43,7 @@ unsigned int indices[] = {
 
 #pragma endregion
 
-unsigned int currIndex = 1;
+
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
@@ -191,20 +196,32 @@ void processInput(GLFWwindow* window)
 
     if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
     {
-        currIndex--;
+        /*currIndex--;
         if (currIndex < 1)
             currIndex = MAX_IMAGE_COUNT;
 
-        LoadTextureData(currIndex);
+        LoadTextureData(currIndex);*/
+
+        orientation--;
+        if (currIndex < 1)
+            currIndex = 4;
+
+        glUniform1i(glGetUniformLocation(ourShader.ID, "orientation"), orientation);
     }
 
     if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
     {
-        currIndex++;
+        /*currIndex++;
         if (currIndex > MAX_IMAGE_COUNT)
             currIndex = 1;
 
-        LoadTextureData(currIndex);
+        LoadTextureData(currIndex);*/
+
+        orientation++;
+        if (currIndex > 4)
+            currIndex = 1;
+
+        glUniform1i(glGetUniformLocation(ourShader.ID, "orientation"), orientation);
     }
 }
 
@@ -214,7 +231,8 @@ int main()
 
     if (GLLibInit() == -1)  return -1;
 
-    Shader ourShader("vshader.vs", "fshader.fs");
+    ourShader.ShaderInit("vshader.vs", "fshader.fs");
+    
     ourShader.use();
 
     CreateGeometry();
@@ -229,6 +247,7 @@ int main()
 
     glUniform1i(glGetUniformLocation(ourShader.ID, "textureA"), 0);
     glUniform1i(glGetUniformLocation(ourShader.ID, "textureB"), 1);
+    glUniform1i(glGetUniformLocation(ourShader.ID, "orientation"), orientation);
 
     while (!glfwWindowShouldClose(window))
     {
